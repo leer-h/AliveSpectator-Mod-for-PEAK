@@ -5,8 +5,10 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using Zorro.ControllerSupport;
 
-[BepInPlugin("com.leer.alivespectator", "Alive Spectator", "1.0.1")]
+[BepInPlugin("com.leer.alivespectator", "Alive Spectator", "1.3.0")]
 public class AliveSpectator : BaseUnityPlugin
 {
     private static bool manualSpectateActive;
@@ -115,17 +117,35 @@ public class AliveSpectator : BaseUnityPlugin
             else
                 __instance.lookInput = Vector2.zero;
 
-            __instance.spectateLeftWasPressed = CharacterInput.action_spectateLeft?.WasPressedThisFrame() ?? false;
-            __instance.spectateRightWasPressed = CharacterInput.action_spectateRight?.WasPressedThisFrame() ?? false;
 
-            float scroll = Input.mouseScrollDelta.y;
+            if (InputHandler.GetCurrentUsedInputScheme() == InputScheme.KeyboardMouse)
+            {
+                __instance.spectateLeftWasPressed = __instance.HotbarKeyWasPressed(0);
+                __instance.spectateRightWasPressed = __instance.HotbarKeyWasPressed(1);
+            }
+            else
+            {
+                __instance.spectateLeftWasPressed = CharacterInput.action_selectSlotBackward?.IsPressed() ?? false;
+                __instance.spectateRightWasPressed = CharacterInput.action_selectSlotForward?.IsPressed() ?? false;
+            }
 
-            if (Input.GetKey(KeyCode.JoystickButton4))
-                scroll -= 0.1f;
-            if (Input.GetKey(KeyCode.JoystickButton5))
-                scroll += 0.1f;
+            float scroll = 0f;
+
+            scroll += Input.mouseScrollDelta.y;
+
+            if (Gamepad.current != null)
+            {
+                float buttonZoomSpeed = 30f;
+                if (Gamepad.current.leftShoulder.isPressed)
+                    scroll -= buttonZoomSpeed * Time.deltaTime;
+                if (Gamepad.current.rightShoulder.isPressed)
+                    scroll += buttonZoomSpeed * Time.deltaTime;
+            }
 
             __instance.scrollInput = scroll;
+
+            __instance.scrollForwardIsPressed = Gamepad.current?.rightShoulder.isPressed ?? false;
+            __instance.scrollBackwardIsPressed = Gamepad.current?.leftShoulder.isPressed ?? false;
         }
     }
 }
